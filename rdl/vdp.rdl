@@ -1,0 +1,460 @@
+addrmap vdp {
+	name = "Sega Genesis/Mega Drive VDP";
+	desc = "This set of definitions has been cobbled together from
+		several documentation sources:
+
+		https://segaretro.org/Sega_Mega_Drive/VDP_registers
+		http://info.sonicretro.org/SCHG:VDP_Documentation/General/Registers";
+
+	default regwidth = 8;
+
+	reg {
+		name = "Mode Register 1";
+
+		field {
+			name = "Left column blank";
+			desc = "When set, the leftmost 8 columns will always
+				show the background color.";
+		} L[5:5];
+
+		field {
+			name = "Horizontal interrupt enable";
+			desc = "When set, horizontal interrupts will be
+				generated.";
+		} IE1[4:4];
+
+		field {
+			name = "Palette select";
+			desc = "When clear, only bit 1 of each nibble in a
+				CRAM palette entry is used, giving 8 available
+				colors. When set, bits 1, 2 and 3 of each
+				nibble are used, giving 512 available colors.";
+		} CM[2:2];
+
+		field {
+			name = "HV Counter Latch Enable";
+			desc = "When set, the HV counter will be latched when
+				a level 2 interrupt is generated. The HV
+				counter will resume normal operation when
+				this bit is cleared.";
+		} M3[1:1];
+
+		field {
+			name = "Display Disable";
+			desc = "Setting this bit actually turns off all
+				display generation, as opposed to the screen
+				blanking feature which simply shows the
+				background color.";
+		} DE[0:0];
+	} MODE1 @ 0x00;
+
+	reg {
+		name = "Mode Register 2";
+
+		field {
+			name = "128kB Mode Enable";
+			desc = "When set, the VDP can utilize 128kB of VRAM.
+				Since most Mega Drives don't have 128kB VRAM,
+				setting this bit will result in a corrupted
+				display.";
+		} VR[7:7];
+
+		field {
+			name = "Display Enable";
+			desc = "When cleared, the display is blanked. Any line
+				that is blanked is filled with the background
+				color. During this time, you can freely access
+				VDP memory with no limitations on the number
+				of writes per line.";
+		} DE[6:6];
+
+		field {
+			name = "Vertical Interrupt Enable";
+			desc = "When set, vertical interrupts will be
+				generated.";
+		} IE0[5:5];
+
+		field {
+			name = "DMA Enable";
+			desc = "When set, DMA operations will be enabled.
+				Otherwise, DMA commands will be ignored by the
+				VDP.";
+		} M1[4:4];
+
+		field {
+			name = "Output Format";
+			desc = "Selects between a PAL (240) and NTSC (224
+				lines) display.";
+		} M2[3:3];
+
+		field {
+			name = "SMS Display Select";
+			desc = "Toggles between the Master System (mode 4) and
+				Genesis (mode 5) display modes. While in mode
+				4, none of the registers which normally affect
+				the Genesis work; and the unused registers
+				(0x08, 0x09) now function. The mode bits which
+				select TMS9918 modes on a real SMS have no
+				function here. (This is why the SMS game F16
+				Fighter will not work with a Power Base
+				Converter, it uses some of the TMS9918 modes
+				in-game).
+
+				The one exception is register 0x0C. You can set
+				up a 320x192 display, but the leftmost eight
+				columns read 'garbage' data for the name table
+				attributes. Enabling interlace makes the
+				display unstable. (and this is partially true
+				for a 320x192 picture, which shakes slightly)
+				I'd advise you set 0x0C to zero to enable a
+				256x192 display, which is the normal SMS
+				resolution. The Genesis always generates a 224
+				line picture; the 192 lines in SMS mode are
+				centered in the middle of the screen.
+
+				I could not get the top row or right column
+				lock features to work while in SMS mode. Apart
+				from this bit, the M3 pin on the cartridge
+				connector also puts the machine into SMS mode,
+				which may fully enable all video features.";
+		} M5[2:2];
+	} MODE2 @ 0x01;
+
+	reg {
+		name = "Plane A Name Table Location";
+		desc = "Bits 5-3 of this register correspond to bits A15-A13
+			of the name table address for plane A.";
+
+		field {
+		} NAMTBLA[7:0];
+	} NAMTBLA @ 0x02;
+
+	reg {
+		name = "Window Name Table Location";
+		desc = "Bits 5-1 of this register correspond to bits A15-A11
+			of the name table address for the window.
+
+			In 40-cell mode, A11 is always forced to zero.";
+
+		field {
+		} NAMTBLW[7:0];
+	} NAMTBLW @ 0x03;
+
+	reg {
+		name = "Plane B Name Table Location";
+		desc = "Bits 2-0 of this register correspond to bits A15-A13
+			of the name table address for plane B.";
+
+		field {
+		} NAMTBLB[7:0];
+	} NAMTBLB @ 0x04;
+
+	reg {
+		name = "Sprite Table Location";
+		desc = "Bits 6-0 of this register correspond to bits A15-A09
+			of the sprite attribute table.
+
+			In 40-cell mode, A09 is always forced to zero.";
+		field {
+		} SPRTBL[7:0];
+	} SPRTBL @ 0x05;
+
+	reg {
+		name = "Sprite Table Extended Location";
+		desc = "If 128kB mode is enabled, bit 5 of this register is
+			used as bit A16 of sprite tile addresses. Otherwise,
+			this register is unused.";
+
+		field {
+			desc = "Bit 16 of the sprite table address in 128kB
+				VRAM.";
+		} SP16[5:5];
+	} SPRTBL2 @ 0x06;
+
+	reg {
+		name = "Background Color";
+		desc = "Bits 5-0 of this register select a palette entry to be
+			used as the background color.
+
+			The background color is displayed in the following
+			places:
+
+			* The overscan area around the physical display
+			* Any line where the display enable bit has been cleared
+			* Any pixel which is transparent in all planes and sprites intersecting it
+
+			Note that even though the first palette entry on each
+			row cannot be used by any patterns, these entries can
+			be used for the background color.";
+
+		field {
+			name = "Palette line";
+		} PL[5:4];
+
+		field {
+			name = "Color";
+		} C[3:0];
+	} BGCOLOR @ 0x07;
+
+	reg {
+		name = "Master System Horizontal Scroll Register";
+
+		field {
+		} SMSHSCR[7:0];
+	} SMSHSCR @ 0x08;
+
+	reg {
+		name = "Master System Vertical Scroll Register";
+
+		field {
+		} SMSVSCR[7:0];
+	} SMSVSCR @ 0x09;
+
+	reg {
+		name = "Horizontal Interrupt Counter";
+
+		field {
+			desc = "Number of scanlines between horizontal
+				interrupts.";
+		} H[7:0];
+	} HINTC @ 0x0A;
+
+	reg {
+		name = "Mode Register 3";
+
+		field {
+			name = "External Interrupt Enable";
+			desc = "When set, external interrupts will be enabled,
+				caused by the TH pin being set to input mode
+				and having the TH interrupt enable bit set.
+				(Both of these are controlled by the Genesis'
+				I/O registers)";
+		} IE2[3:3];
+
+		field {
+			name = "Vertical Scrolling";
+			desc = "When clear, full screen vertical scrolling
+				is used. When set, 2-cell column based
+				vertical scrolling is used.";
+		} VS[2:2];
+
+		enum hsmode_t {
+			FULL = 0 { desc = "Full Screen Scroll"; };
+			INVALID = 1 { desc = "Invalid"; };
+			CELL = 2 { desc = "Cell Scroll"; };
+			LINE = 3 { desc = "Line Scroll"; };
+		};
+
+		field {
+			name = "Horizontal Scrolling";
+			desc = "Determines how the horizontal scroll table
+				will be interpreted.";
+			encode = hsmode_t;
+		} HS[1:0];
+	} MODE3 @ 0x0B;
+
+	reg {
+		name = "Mode Register 4";
+
+		enum rsmode_t {
+			W40 = 1 { desc = "320 pixel (40 cell) wide mode"; };
+			W32 = 0 { desc = "256 pixel (32 cell) wide mode"; };
+		};
+
+		enum lsmode_t {
+			NONE   = 0 { desc = "No interlace"; };
+			NORMAL = 1 { desc = "Interlace normal resolution"; };
+			NONE2  = 2 { desc = "No interlace"; };
+			DOUBLE = 3 { desc = "Interlace double resolution"; };
+		};
+
+		field {
+			name = "Horizontal Resolution (1)";
+			desc = "Must be same as RS0.";
+			encode = rsmode_t;
+		} RS1[7:7];
+
+		field {
+			name = "External Pixel Bus";
+			desc = "Enable external pixel bus";
+		} EP[4:4];
+
+		field {
+			name = "Shadow/Highlight";
+			desc = "Enable shadow/highlight mode";
+		} SH[3:3];
+
+		field {
+			name = "Interlacing";
+			desc = "Controls interlacing. Changes do not take
+				effect until the next vertical blank.";
+			encode = lsmode_t;
+		} LS[2:1];
+
+		field {
+			name = "Horizontal Resolution (0)";
+			desc = "Must be same as RS1.";
+			encode = rsmode_t;
+		} RS0[0:0];
+	} MODE4 @ 0x0C;
+
+	reg {
+		name = "Horizontal Scroll Data Location";
+		desc = "Bits 5-0 of this register correspond to bits A15-A10
+			of the horizontal scroll data table address.";
+
+		field {
+		} HSDAT[7:0];
+	} HSDAT @ 0x0D;
+
+	reg {
+		name = "Nametable Pattern Generator Base Address";
+		desc = "If 128kB mode is enabled, bit 4 corresponds to bit
+			A16 of the tile address for plane B, and bit 0
+			corresponds to bit A16 of the tile address for plane
+			A. Otherwise, this register is unused.";
+
+		field {
+		} PB[4:4];
+
+		field {
+		} PA[0:0];
+	} NAMTBL2 @ 0x0E;
+
+	reg {
+		name = "Auto-Increment Value";
+		desc = "Bits 7-0 specify the value to be added to the VDP's
+			address register after every read or write to the
+			data port.
+
+			A setting of zero means the address register is not
+			incremented.";
+
+		field {
+		} INC[7:0];
+	} AUTOINCR @ 0x0F;
+
+	reg {
+		name = "Plane Size";
+		desc = "The vertical and horizontal sizes for planes A and
+			B. Note that Height/Width settings of 64x128 and
+			128x128 cells are invalid, due to a maximum plane
+			size of 0x2000 bytes.";
+
+		enum planesize_t {
+			S32 = 0     { desc = "32 cells (256 pixels)"; };
+			S64 = 1     { desc = "64 cells (512 pixels)"; };
+			INVALID = 2 { desc = "Invalid"; };
+			S128 = 3    { desc = "128 cells (1024 pixels)"; };
+		};
+
+		field {
+			name = "Height";
+			desc = "Controls the vertical size of the name
+				tables for planes A and B.";
+			encode = planesize_t;
+		} H[5:4];
+
+		field {
+			name = "Width";
+			desc = "Controls the horizontal size of the name
+				tables for planes A and B.";
+			encode = planesize_t;
+		} W[1:0];
+	} PSIZE @ 0x10;
+
+	reg {
+		name = "Window Plane Horizontal Position";
+
+		field {
+			name = "Right";
+			desc = "If enabled, draw window from HP to right
+				edge of screen; else to left edge.";
+		} R[7:7];
+
+		field {
+			name = "Horizontal Position";
+			desc = "Horizontal position on screen to start
+				drawing the window plane (in units of 8
+				pixels).";
+		} HP[4:0];
+	} WINHPOS @ 0x11;
+
+	reg {
+		name = "Window Plane Vertical Position";
+
+		field {
+			name = "Down";
+			desc = "If enabled, draw window from VP to bottom
+				edge of screen; else to top edge.";
+		} D[7:7];
+
+		field {
+			name = "Vertical Position";
+			desc = "Vertical position on screen to start
+				drawing the window plane (in units of 8
+				pixels).";
+		} VP[4:0];
+	} WINVPOS @ 0x12;
+
+	reg {
+		name = "DMA Length (low)";
+		desc = "This is the low byte for the DMA length counter. If
+			you wanted to transfer 0x1234 words using DMA, you
+			would write 0x34 to this register.";
+
+		field {} DMALENL[7:0];
+	} DMALENL @ 0x13;
+
+	reg {
+		name = "DMA Length (high)";
+		desc = "This is the high byte for the DMA length counter. If
+			you wanted to transfer 0x1234 words using DMA, you
+			would write 0x12 to this register.";
+
+		field {} DMALENH[7:0];
+	} DMALENH @ 0x14;
+
+	reg {
+		name = "DMA Source (low)";
+		desc = "This is the low byte for the DMA source address. It
+			contains bits 1-8 of the source address. (Bit 0 is
+			ignored, since only word transfers are allowed, and
+			word transfers must be aligned.)";
+
+		field {} DMASRCL[7:0];
+	} DMASRCL @ 0x15;
+
+	reg {
+		name = "DMA Source (mid)";
+		desc = "This is the middle byte for the DMA source address.
+			It contains bits 9-16 of the source address.";
+
+		field {} DMASRCM[7:0];
+	} DMASRCM @ 0x16;
+
+	reg {
+		name = "DMA Source (high)";
+		desc = "This is the high byte for the DMA source address. It
+			contains bits 17-22 of the source address, plus two
+			DMA mode bits.";
+
+		/* TODO: can I represent this better? */
+
+		enum dmareq_t {
+			M68K2VRAM  = 0 { desc = "68K low to VRAM copy"; };
+			M68KH2VRAM = 1 { desc = "68K high to VRAM copy"; };
+			VRAM_FILL  = 2 { desc = "VRAM fill"; };
+			VRAM2VRAM  = 3 { desc = "VRAM to VRAM copy"; };
+		};
+
+		field {
+			name = "DMA Type";
+			encode = dmareq_t;
+		} TYPE[7:6];
+
+		field {
+			name = "DMA Source (high)";
+		} DMASRCH[5:0];
+	} DMASRCH @ 0x17;
+};

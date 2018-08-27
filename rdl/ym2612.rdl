@@ -1,0 +1,489 @@
+addrmap ym2612 {
+	name = "Yamaha YM2612
+
+		http://www.smspower.org/maxim/Documents/YM2612";
+
+	default regwidth = 8;
+	default sw = rw;
+	default hw = r;
+
+	reg lfo_t {
+		name = "Low Frequency Oscillator";
+
+		desc = "The LFO (Low frequency Oscillator) is used to distort the FM
+			sounds' amplitude and phase. It is triply enabled, as there is:
+
+			i. A global enable in register 22H
+			ii. A sensitivity enable on a channel-by-channel
+			    basis, in registers B4H-B6H.
+			iii. An amplitude enable on an operation by
+			     operation basis, in registers 60H-6EH.
+
+			If the LFO is desired, enable it by register 22H. Next, select
+			which channels will be affected by the LFO, to what degree, and
+			whether their amplitude or frequency is affected, by setting
+			registers B4-B6H. Finally. if a channel's amplitude is affected,
+			make sure that it is only the slots that are affected by setting
+			registers 60H - 6EH.";
+
+		enum lfo_frequency {
+			HZ3_98	= 0 { desc = "3.98 Hz"; };
+			HZ5_56	= 1 { desc = "5.56 Hz"; };
+			HZ6_02	= 2 { desc = "6.02 Hz"; };
+			HZ6_37	= 3 { desc = "6.37 Hz"; };
+			HZ6_88	= 4 { desc = "6.88 Hz"; };
+			HZ9_63	= 5 { desc = "9.63 Hz"; };
+			HZ48_1	= 6 { desc = "48.1 Hz"; };
+			HZ72_2	= 7 { desc = "72.2 Hz"; };
+		};
+
+		field {
+			desc = "LFO enable";
+		} ENABLE[4:4];
+
+		field {
+			desc = "LFO frequency";
+			encode = lfo_frequency;
+		} FREQ[3:0];
+	};
+
+	reg timerah_t {
+		name = "Timer A High";
+
+		desc = "Registers 24H and 25H are ganged together to form
+			10-bit Timer A, with register 25H containing the least
+			significant bits. They should be set in the order 24H,
+			25H. The timer lasts:
+
+			18 x (1024 - Timer A) microseconds
+			Timer A = all 1's -> 18 s = 0.018 ms
+			Timer A = all 0's -> 18,400 us = 18.4 ms";
+
+		field {
+			name = "Timer A High";
+		} TIMERAH[7:0];
+	};
+
+	reg timeral_t {
+		name = "Timer A Low";
+
+		field {
+			name = "Timer A Low";
+		} TIMERAL[7:0];
+	};
+
+	reg timerb_t {
+		name = "Timer B";
+
+		desc = "8 Bit Timer B lasts:
+
+			288 x (256 - Timer B) microseconds
+			Timer B = all 1's -> 0.288 ms
+			Timer B = all 0's -> 73.44 ms";
+
+		field {
+			name = "Timer B";
+		} TIMERB[7:0];
+	};
+
+	reg ch36mode_t {
+		name = "Timers and Ch3/6 mode";
+
+		enum timer_mode {
+			NORMAL	= 0 { desc = "Channel 3 is the same as the others"; };
+			SPECIAL	= 1 { desc = "Channel 3 has 4 separate frequencies"; };
+		};
+
+		field {
+			name = "Ch3 mode";
+			encode = timer_mode;
+		} CH3MODE[7:6];
+
+		field {
+			name = "Reset B";
+			desc = "Writing a 1 clears the read register flag, writing
+				a 0 has no effect.";
+		} RESETB[5:5];
+
+		field {
+			name = "Reset A";
+			desc = "Writing a 1 clears the read register flag, writing
+				a 0 has no effect.";
+		} RESETA[4:4];
+
+		field {
+			name = "Enable B";
+			desc = "1 causes timer overflow to set the read register
+				flag. 0 means the timer keeps cycling without
+				setting the flag.";
+		} ENABLEB[3:3];
+
+		field {
+			name = "Enable A";
+			desc = "1 causes timer overflow to set the read register
+				flag. 0 means the timer keeps cycling without
+				setting the flag.";
+		} ENABLEA[2:2];
+
+		field {
+			name = "Load B";
+			desc = "1 starts the timer, 0 stops it.";
+		} LOADB[1:1];
+
+		field {
+			name = "Load A";
+			desc = "1 starts the timer, 0 stops it.";
+		} LOADA[0:0];
+
+	};
+
+	reg keyonoff_t {
+		name = "Key on/off";
+		desc = "This register is used for \"Key on\" and \"Key off\".
+			\"Key on\" is the depression of the synthesizer key,
+			\"Key off\" is its release. The sequence of operations
+			is: set parameters, Key on, wait, key off. When key
+			off occurs, the FM channel stops its slow decline and
+			starts the rapid decline specified by \"RR\", the
+			release rate.
+
+			In a single write to register 28H, one sets the status
+			of all operators for a single channel. Sega always sets
+			them to the same value, on (1) or off (0). Using a
+			special channel 3, I believe it is possible to have each
+			operator be a separate note, so there is possible
+			justification for turning then on and off separately.";
+
+		field {
+			name = "Operator";
+		} OP[7:4];
+
+		field {
+			name = "Channel";
+		} CHAN[2:0];
+	};
+
+	reg dacdata_t {
+		name = "DAC Data";
+
+		desc = "Register 0x2A contains 8 bit DAC data.";
+
+		field {
+			name = "DAC Data";
+		} DACDATA[7:0];
+	};
+
+	reg dacenbl_t {
+		name = "DAC Enable";
+
+		desc = "If the DAC enable is 1, the DAC data is output as a
+			replacement for channel 6. The only Channel 6 register
+			that affects the DAC is the stereo output portion of
+			register B4H.";
+
+		field {
+			name = "Enable";
+		} ENABLE[7:7];
+	};
+
+	reg detmul_t {
+		name = "Detune and Multiple";
+		desc = "Both DT1 (detune) and MUL (multiple) relate the
+			operator's frequency to the overall frequency.";
+
+		field {
+			name = "DT1";
+			desc = "DT1 gives small variations from the overall
+				frequency * MUL. The MSB of DT1 is a primitive
+				sign bit, and the two LSB's are magnitude bits.";
+		} DT1[6:4];
+
+		field {
+			name = "MUL";
+			desc = "MUL ranges from 0 to 15 (decimal), and
+				multiplies the overall frequency, with the
+				exception that 0 results in multiplication by
+				1/2. That is, MUL=0 to 15 gives x1/2, x1,
+				x2, ... x15.";
+		} MUL[3:0];
+	};
+
+	reg tl_t {
+		name = "Total Level";
+		desc = "TL (total level) represents the envelope's highest
+			amplitude, with 0 being the largest and 127 (decimal)
+			the smallest. A change of one unit is about 0.75 dB.
+
+			To make a note softer, only change the TL of the slots
+			(the output operators). Changing the other operators will
+			affect the flavor of the note.";
+
+		field {
+			name = "TL";
+		} TL[6:0];
+	};
+
+	reg rateh_t {
+		name = "Rate Scaling; Attack Rate";
+		desc = "Register 50H contains RS (rate scaling) and AR (attack
+			rate). AR is the steepness of the initial amplitude rise.
+
+			RS affects AR, D1R, D2R and RR in the same way. RS is
+			the degree to which the envelope becomes narrower as the
+			frequency becomes higher.";
+
+		field {
+			name = "Rate Scaling";
+		} RS[7:6];
+
+		field {
+			name = "Attack Rate";
+		} AR[4:0];
+	};
+
+	reg ratemh_t {
+		name = "First Decay Rate; Amplitude Modulation";
+
+		field {
+			name = "Amplitude Modulation";
+			desc = "AM is the amplitude modulation enable, whether
+				of not this operator will be subject to amplitude
+				modulation by the LFO. This bit is not relevant
+				unless both the LFO is enabled and register B4's
+				AMS (amplitude modulation sensitivity) is
+				non-zero.";
+		} AM[7:7];
+
+		field {
+			name = "First Decay Rate";
+			desc = "D1R is the initial steep amplitude decay rate. It
+				is, like all rates, 0-31 in value and affected by
+				RS.";
+		} D1R[4:0];
+	};
+
+	reg rateml_t {
+		name = "Secondary Decay Rate";
+
+		field {
+			name = "Secondary Decay Rate";
+			desc = "D2R is the long tail off of the sound that
+				continues as long as the key is depressed.";
+		} D2R[4:0];
+	};
+
+	reg ratel_t {
+		name = "Secondary Amplitude; Release Rate";
+
+		field {
+			name = "Secondary Amplitude";
+			desc = "D1L is the secondary amplitude reached after the
+				first period of rapid decay. It should be multiplied
+				by 8 if one wishes to compare it to TL. Again as TL,
+				the higher the number, the more attenuated the sound.";
+		} D1L[7:4];
+
+		field {
+			name = "Release Rate";
+			desc = "RR is the release rate, the final sharp decrease in
+				volume after the key is released. All rates are 5 bit
+				numbers, but there are only four bits available in the
+				register. Thus, for comparison and calculation
+				purposes, these four bits are the MSBs and the LSB is
+				always 1. In other words, double it and add one.";
+		} RR[3:0];
+	};
+
+	reg ssgeg_t {
+		name = "Proprietary";
+		desc = "This register is proprietary and should be set to zero.";
+
+		field {
+			name = "SSG-EG";
+		} SSGEG[3:0];
+	};
+
+
+	reg freql_t {
+		name = "Frequency LSB";
+
+		field {
+			name = "Frequency LSB";
+		} FREQL[7:0];
+	};
+
+	reg freqh_t {
+		name = "Frequency MSB";
+
+		field {
+			name = "Block";
+		} BLOCK[5:3];
+
+		field {
+			name = "Frequency MSB";
+		} FREQH[2:0];
+	};
+
+	reg algo_t {
+		name = "Feedback and Algorithm";
+
+		field {
+			name = "Feedback";
+		} FB[5:3];
+
+		field {
+			name = "Algorithm";
+		} ALGO[2:0];
+	};
+
+	reg stsens_t {
+		name = "Stereo and LFO Sensitivity";
+
+		field {
+			name = "Left Output";
+		} L[7:7];
+
+		field {
+			name = "Right Output";
+		} R[6:6];
+
+		field {
+			name = "Amplitude Modulation Sensitivity";
+		} AMS[5:3];
+
+		field {
+			name = "Frequency Modulation Sensitivity";
+		} FMS[1:0];
+	};
+
+	lfo_t			LFO 		@ 0x22;
+	timerah_t		TIMERAH		@ 0x24;
+	timeral_t		TIMERAL		@ 0x25;
+	ch36mode_t		CH36MODE	@ 0x27;
+	keyonoff_t		KEYONOFF	@ 0x28;
+	dacdata_t		DACDATA		@ 0x2A;
+	dacenbl_t		DACENBL		@ 0x2B;
+
+	/*
+	 * these would be a great opportunity to make regfiles,
+	 * but making "interleved" regfiles doesn't appear to
+	 * be an option.
+	 */
+
+	detmul_t		CH1OP1_DETMUL	@ 0x30;
+	detmul_t		CH2OP1_DETMUL	@ 0x31;
+	detmul_t		CH3OP1_DETMUL	@ 0x32;
+	detmul_t		CH1OP2_DETMUL	@ 0x34;
+	detmul_t		CH2OP2_DETMUL	@ 0x35;
+	detmul_t		CH3OP2_DETMUL	@ 0x36;
+	detmul_t		CH1OP3_DETMUL	@ 0x38;
+	detmul_t		CH2OP3_DETMUL	@ 0x39;
+	detmul_t		CH3OP3_DETMUL	@ 0x3A;
+	detmul_t		CH1OP4_DETMUL	@ 0x3C;
+	detmul_t		CH2OP4_DETMUL	@ 0x3D;
+	detmul_t		CH3OP4_DETMUL	@ 0x3E;
+
+	tl_t			CH1OP1_TL	@ 0x40;
+	tl_t			CH2OP1_TL	@ 0x41;
+	tl_t			CH3OP1_TL	@ 0x42;
+	tl_t			CH1OP2_TL	@ 0x44;
+	tl_t			CH2OP2_TL	@ 0x45;
+	tl_t			CH3OP2_TL	@ 0x46;
+	tl_t			CH1OP3_TL	@ 0x48;
+	tl_t			CH2OP3_TL	@ 0x49;
+	tl_t			CH3OP3_TL	@ 0x4A;
+	tl_t			CH1OP4_TL	@ 0x4C;
+	tl_t			CH2OP4_TL	@ 0x4D;
+	tl_t			CH3OP4_TL	@ 0x4E;
+
+	rateh_t			CH1OP1_RATEH	@ 0x50;
+	rateh_t			CH2OP1_RATEH	@ 0x51;
+	rateh_t			CH3OP1_RATEH	@ 0x52;
+	rateh_t			CH1OP2_RATEH	@ 0x54;
+	rateh_t			CH2OP2_RATEH	@ 0x55;
+	rateh_t			CH3OP2_RATEH	@ 0x56;
+	rateh_t			CH1OP3_RATEH	@ 0x58;
+	rateh_t			CH2OP3_RATEH	@ 0x59;
+	rateh_t			CH3OP3_RATEH	@ 0x5A;
+	rateh_t			CH1OP4_RATEH	@ 0x5C;
+	rateh_t			CH2OP4_RATEH	@ 0x5D;
+	rateh_t			CH3OP4_RATEH	@ 0x5E;
+
+	ratemh_t		CH1OP1_RATEMH	@ 0x60;
+	ratemh_t		CH2OP1_RATEMH	@ 0x61;
+	ratemh_t		CH3OP1_RATEMH	@ 0x62;
+	ratemh_t		CH1OP2_RATEMH	@ 0x64;
+	ratemh_t		CH2OP2_RATEMH	@ 0x65;
+	ratemh_t		CH3OP2_RATEMH	@ 0x66;
+	ratemh_t		CH1OP3_RATEMH	@ 0x68;
+	ratemh_t		CH2OP3_RATEMH	@ 0x69;
+	ratemh_t		CH3OP3_RATEMH	@ 0x6A;
+	ratemh_t		CH1OP4_RATEMH	@ 0x6C;
+	ratemh_t		CH2OP4_RATEMH	@ 0x6D;
+	ratemh_t		CH3OP4_RATEMH	@ 0x6E;
+
+	rateml_t		CH1OP1_RATEML	@ 0x70;
+	rateml_t		CH2OP1_RATEML	@ 0x71;
+	rateml_t		CH3OP1_RATEML	@ 0x72;
+	rateml_t		CH1OP2_RATEML	@ 0x74;
+	rateml_t		CH2OP2_RATEML	@ 0x75;
+	rateml_t		CH3OP2_RATEML	@ 0x76;
+	rateml_t		CH1OP3_RATEML	@ 0x78;
+	rateml_t		CH2OP3_RATEML	@ 0x79;
+	rateml_t		CH3OP3_RATEML	@ 0x7A;
+	rateml_t		CH1OP4_RATEML	@ 0x7C;
+	rateml_t		CH2OP4_RATEML	@ 0x7D;
+	rateml_t		CH3OP4_RATEML	@ 0x7E;
+
+	ratel_t			CH1OP1_RATEL	@ 0x80;
+	ratel_t			CH2OP1_RATEL	@ 0x81;
+	ratel_t			CH3OP1_RATEL	@ 0x82;
+	ratel_t			CH1OP2_RATEL	@ 0x84;
+	ratel_t			CH2OP2_RATEL	@ 0x85;
+	ratel_t			CH3OP2_RATEL	@ 0x86;
+	ratel_t			CH1OP3_RATEL	@ 0x88;
+	ratel_t			CH2OP3_RATEL	@ 0x89;
+	ratel_t			CH3OP3_RATEL	@ 0x8A;
+	ratel_t			CH1OP4_RATEL	@ 0x8C;
+	ratel_t			CH2OP4_RATEL	@ 0x8D;
+	ratel_t			CH3OP4_RATEL	@ 0x8E;
+
+	ssgeg_t			CH1OP1_SSGEG	@ 0x90;
+	ssgeg_t			CH2OP1_SSGEG	@ 0x91;
+	ssgeg_t			CH3OP1_SSGEG	@ 0x92;
+	ssgeg_t			CH1OP2_SSGEG	@ 0x94;
+	ssgeg_t			CH2OP2_SSGEG	@ 0x95;
+	ssgeg_t			CH3OP2_SSGEG	@ 0x96;
+	ssgeg_t			CH1OP3_SSGEG	@ 0x98;
+	ssgeg_t			CH2OP3_SSGEG	@ 0x99;
+	ssgeg_t			CH3OP3_SSGEG	@ 0x9A;
+	ssgeg_t			CH1OP4_SSGEG	@ 0x9C;
+	ssgeg_t			CH2OP4_SSGEG	@ 0x9D;
+	ssgeg_t			CH3OP4_SSGEG	@ 0x9E;
+
+	freql_t			CH1_FREQL	@ 0xA0;
+	freql_t			CH2_FREQL	@ 0xA1;
+	freql_t			CH3OP1_FREQL	@ 0xA2;
+
+	freqh_t			CH1_FREQH	@ 0xA4;
+	freqh_t			CH2_FREQH	@ 0xA5;
+	freqh_t			CH3OP1_FREQH	@ 0xA6;
+
+	freql_t			CH3OP2_FREQL	@ 0xA8;
+	freql_t			CH3OP3_FREQL	@ 0xA9;
+	freql_t			CH3OP4_FREQL	@ 0xAA;
+
+	freqh_t			CH3OP2_FREQH	@ 0xAC;
+	freqh_t			CH3OP3_FREQH	@ 0xAD;
+	freqh_t			CH3OP4_FREQH	@ 0xAE;
+
+	algo_t			CH1_ALGO	@ 0xB0;
+	algo_t			CH2_ALGO	@ 0xB1;
+	algo_t			CH3_ALGO	@ 0xB2;
+
+	stsens_t		CH1_STSENS	@ 0xB4;
+	stsens_t		CH2_STSENS	@ 0xB5;
+	stsens_t		CH3_STSENS	@ 0xB6;
+
+};
+

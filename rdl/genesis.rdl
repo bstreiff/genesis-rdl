@@ -1,0 +1,104 @@
+addrmap genesis {
+	name = "Sega Genesis";
+	desc = "Register description of the Sega Genesis/Mega Drive";
+
+	default regwidth = 16;
+	default sw = rw;
+	default hw = r;
+
+	reg {
+		name = "Hardware Version";
+
+		field {
+			desc = "0: Domestic, 1: Overseas";
+			sw = r;
+		} MODE[7:7] = 0;
+
+		field {
+			desc = "0: NTSC, 1: PAL";
+			sw = r;
+		} VMOD[6:6] = 0;
+
+		field {
+			desc = "0: FDD unit connected, 1: no FDD";
+			sw = r;
+		} DISK[5:5] = 0;
+
+		field {
+			desc = "Hardware version";
+			sw = r;
+		} VER[0:3] = 0;
+	} HWVERSION @ 0xA10001;
+
+	/*
+	 * TODO: all the controller/expansion ports
+	 */
+
+	reg {
+		name = "Z80 Bus Request";
+
+		field {
+			desc = "Request Bus";
+		} REQUEST[8:8] = 0;
+	} BUSREQ @ 0xA11100;
+
+	reg {
+		name = "Z80 Reset";
+
+		field {
+			desc = "Assert Reset";
+		} REQUEST[8:8] = 0;
+	} RESET @ 0xA11200;
+
+	reg {
+		regwidth = 32;
+		name = "TMSS Control Register";
+
+		field {} TMSS[31:0];
+	} TMSS @ 0xA14000;
+
+	reg {
+		regwidth = 32;
+		name = "VDP Data Port";
+
+		field {} DATA_PORT[31:0];
+	} DATA_PORT @ 0xC00000;
+
+	/*
+	 * TODO: 16-bit access can also happen at this address, but we aren't
+	 * allowed to instantiate it because it technically overlaps with
+	 * DATA_PORT and SystemRDL doesn't let us define overlapping
+	 * registers. SystemRDL doesn't seem to have a syntax for "there are
+	 * multiple registers at this address that can be accessed with
+	 * different-width bus accesses", particularly for big-endian bus
+	 * architectures like M68K.
+	 */
+	//reg {
+	//	regwidth = 16;
+	//	name = "VDP Data Port Mirror";
+	//
+	//	field {} DATA_PORT_MIRROR[15:0];
+	//} DATA_PORT_MIRROR @ 0xC00002;
+
+	reg {
+		regwidth = 32;
+		name = "VDP Control Port";
+
+		field {} CTRL_PORT[31:0];
+	} CTRL_PORT @ 0xC00004;
+
+	//reg {
+	//	regwidth = 16;
+	//	name = "VDP Control Port Mirror";
+	//
+	//	field {} CTRL_PORT_MIRROR[31:0];
+	//} CTRL_PORT_MIRROR @ 0xC00006;
+
+	reg {
+		regwidth = 32;
+		name = "VDP H/V Counter Port";
+
+		field {} HVCOUNTER_PORT[31:0];
+	} HVCOUNTER_PORT @ 0xC00008;
+
+};
